@@ -1,0 +1,7 @@
+#!/bin/sh
+#
+# Stupid script to mount the virtual box shared folder. There must be
+# a cleaner way, but I give up for now...
+
+modprobe vboxvfs
+mount -t vboxsf -o rw,uid=1000,gid=1000 git /home/ubuntu/superfly

@@ -1,0 +1,23 @@
+#!/bin/bash
+#
+# Script that ensures that the password for the ubuntu user is
+# changed, so we don't all share the same password.
+#
+set -e
+
+# Check if we're in the template image. We don't want to change that
+# password.
+if [ "${HOSTNAME}" == "chartbeatdev01.chartbeat.com" ]; then
+    exit
+fi
+
+THEUSER=ubuntu
+MINIMUM=1346187031
+LASTCHANGE=`passwd -S ${THEUSER} | cut -d ' ' -f 3`
+LASTCHANGE_TS=`date --utc --date "${LASTCHANGE}" +%s`
+if [ ${LASTCHANGE_TS} -ge ${MINIMUM} ]; then
+    exit
+fi
+
+# Expire the user password
+passwd -e ${THEUSER}

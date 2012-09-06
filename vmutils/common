@@ -1,0 +1,71 @@
+# -*- mode: sh -*-
+#
+# Common functionality for VM scripts
+
+# Show the user a menu of VMs if none is chosen already (in $VM)
+get_vm () {
+    if [ -z $VM ]; then
+        echo "Choose a VM:"
+        VMS=`VBoxManage list vms | cut -f 1 -d ' ' | xargs`
+        select VM in $VMS; do
+            break
+        done
+    fi
+}
+
+# Show the user a menu of snapshots if not already chosen (in $SNAP)
+get_snap() {
+    if [ -z $SNAP ]; then
+        echo "Choose the snapshot for $VM:"
+        SNAPS=`VBoxManage snapshot $VM list --machinereadable | grep SnapshotName | cut -f 2 -d '=' | xargs`
+        select SNAP in $SNAPS; do
+            break
+        done
+    fi
+}
+
+# Wait for the VM to be up, i.e. answer pings
+wait_for_up() {
+    echo "Waiting for $VM to get online..."
+    while true; do
+        ping -o $VM.local > /dev/null 2>&1
+        if [ $? == 0 ]; then
+            break
+        fi
+    done
+}
+
+# Get the current state of the VM
+get_state() {
+    vm_state=`VBoxManage showvminfo $VM --machinereadable | grep 'VMState=' | cut -f 2 -d '='`
+
+    if [ -z $vm_state ]; then
+        echo "Got unexpected output from VBoxManage, exiting"
+        exit 1
+    fi
+
+    echo $vm_state
+}
+
+# Ask user to power off VM if it's running
+poweroff() {
+    vm_state=$(get_state)
+
+    if [ $vm_state != "\"poweroff\"" ]; then
+        read -p "VM is not powered off, want to do that [y/N]? " choice
+        case "$choice" in
+            y|Y) ;;
+            *) exit 1;;
+        esac
+
+        echo "CMD: Powering off $VM"
+        VBoxManage controlvm $VM poweroff
+
+        # Wait a bit, as it seems like the machine state takes a while
+        # to settle, and no other commands can be run until then.
+        sleep 1
+
+    else
+        echo "VM is already powered off"
+    fi
+}

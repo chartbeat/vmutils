@@ -1,0 +1,14 @@
+#!/bin/bash
+# Only fix eth1
+if [ "$IFACE" != eth1 ]; then
+    exit 0
+fi
+
+# Find the gateway
+GW=`route -n | grep -e '^0\.0\.0\.0.*UG.*eth1' | cut -c 17-32`
+
+# Remote the default too open route
+route del -net 0.0.0.0 gw $GW
+
+# Add a new more restrictive one for 10.0.0.0/8 only
+route add -net 10.0.0.0/8 gw $GW
